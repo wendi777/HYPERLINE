@@ -24,8 +24,7 @@ defaults:
 
 jobs:
   test-rs:
-    runs-on: larger-runner
-
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
@@ -46,12 +45,17 @@ jobs:
           sudo rm -rf /opt/ghc
           sudo rm -rf "/usr/local/share/boost"
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo df -h
+          sudo du -sh .
       - name: Run tests
-        run: cargo test
+        run: cargo test --release
+      - name: After
+        run: |
+          sudo df -h
+          sudo du -sh .
 
   lint-rs:
-    runs-on: larger-runner
-
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
@@ -74,13 +78,31 @@ jobs:
           sudo rm -rf /opt/ghc
           sudo rm -rf "/usr/local/share/boost"
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo df -h
+          sudo du -sh .
       - name: Check
-        run: cargo check --all-features --all-targets
+        run: cargo check --release --all-features --all-targets
+      - name: After
+        run: |
+          sudo df -h
+          sudo du -sh .
       - name: Rustfmt
         run: cargo fmt --all -- --check
       - name: Clippy
         run: cargo clippy -- -D warnings
+      - name: After
+        run: |
+          sudo df -h
+          sudo du -sh .
       - name: Setup WASM
         run: rustup target add wasm32-unknown-unknown
+      - name: After
+        run: |
+          sudo df -h
+          sudo du -sh .
       - name: Check WASM
-        run: cargo check -p hyperlane-core --features=strum,test-utils --target wasm32-unknown-unknown
+        run: cargo check --release -p hyperlane-core --features=strum,test-utils --target wasm32-unknown-unknown
+      - name: After
+        run: |
+          sudo df -h
+          sudo du -sh .
