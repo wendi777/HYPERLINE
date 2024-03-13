@@ -1,12 +1,9 @@
-import { ethers } from 'ethers';
-
-import { TelepathyCcipReadIsmAbi } from '../abis/TelepathyCcipReadIsmAbi';
+import { BigNumber, ethers } from 'ethers';
 
 import { HyperlaneService } from './HyperlaneService';
 import { LightClientService, SuccinctConfig } from './LightClientService';
-import { RPCService } from './RPCService';
-import { ProofResult } from './RPCService';
-import { ProofStatus } from './common/ProofStatusEnum';
+import { ProofResult, RPCService } from './RPCService';
+import { ProofStatus } from './constants/ProofStatusEnum';
 
 type RPCConfig = {
   readonly url: string;
@@ -19,7 +16,7 @@ type HyperlaneConfig = {
 
 // Service that requests proofs from Succinct and RPC Provider
 class ProofsService {
-  // Maps from pendingProofKey to pendingProofId
+  // Maps from pendingProofKey (enconding of target address, storageKey, and messageId) to pendingProofId
   pendingProof = new Map<string, string>();
 
   // External Services
@@ -33,15 +30,10 @@ class ProofsService {
     hyperlaneConfig: Required<HyperlaneConfig>,
   ) {
     this.rpcService = new RPCService(rpcConfig.url);
-    const lightClientContract = new ethers.Contract(
-      succinctConfig.lightClientAddress,
-      TelepathyCcipReadIsmAbi,
-      this.rpcService.provider,
-    );
 
     this.lightClientService = new LightClientService(
-      lightClientContract,
       succinctConfig,
+      this.rpcService.provider,
     );
 
     this.hyperlaneService = new HyperlaneService(hyperlaneConfig.url);
@@ -74,11 +66,11 @@ class ProofsService {
     } else {
       // Proof is being generated, check status
       const proofStatus = await this.lightClientService.getProofStatus(
-        this.pendingProof.get(pendingProofKey)!,
+        this.pendingProof.get(pendingProofKey)!, // Should never be undefined
       );
       if (proofStatus === ProofStatus.success) {
         // Succinct Proof is ready.
-        // This means that the LightClient should have the latest state root. Fetch and return the storage proofs from eth_getProof
+        // This means that the LightClient should have the latest state root. Proceed to fetch and return the storage proofs from eth_getProof
         proofs.push(await this.getStorageProofs(target, storageKey, messageId));
         this.pendingProof.delete(pendingProofKey);
       } else {
@@ -90,7 +82,7 @@ class ProofsService {
   }
 
   /**
-   * Requests the Succinct proof
+   * Requests the Succinct ZK proof
    * @param messageId messageId that will be used to get the block info from hyperlane
    * @returns the proofId
    */
@@ -98,8 +90,11 @@ class ProofsService {
     const { timestamp } = await this.hyperlaneService.getOriginBlockByMessageId(
       messageId,
     );
-    const slot = await this.lightClientService.calculateSlot(BigInt(timestamp));
-    const syncCommitteePoseidon = ''; // TODO get from LC
+    const slot = await this.lightClientService.calculateSlot(
+      BigNumber.from(timestamp),
+    );
+    const syncCommitteePoseidon =
+      await this.lightClientService.getSyncCommitteePoseidons(slot);
     return await this.lightClientService.requestProof(
       syncCommitteePoseidon,
       slot,

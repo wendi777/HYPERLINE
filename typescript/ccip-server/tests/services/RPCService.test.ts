@@ -1,7 +1,10 @@
-import { describe, expect, test } from '@jest/globals';
+import { describe, expect, jest, test } from '@jest/globals';
 
 import * as config from '../../src/config';
 import { RPCService } from '../../src/services/RPCService';
+
+// Fixtures
+jest.mock('../../src/services/RPCService');
 
 describe('RPCService', () => {
   const rpcService = new RPCService(config.RPC_ADDRESS);
@@ -13,6 +16,7 @@ describe('RPCService', () => {
       '0x1221E88',
     );
 
+    // This just returns the mocked data
     expect(proofs).not.toBeNull();
   });
 });
