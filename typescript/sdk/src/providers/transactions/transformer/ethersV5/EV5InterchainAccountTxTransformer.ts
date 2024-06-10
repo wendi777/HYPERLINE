@@ -1,8 +1,14 @@
 import { ethers } from 'ethers';
 import { Logger } from 'pino';
 
-import { assert, objKeys, rootLogger } from '@hyperlane-xyz/utils';
+import {
+  assert,
+  concurrentMap,
+  objMap,
+  rootLogger,
+} from '@hyperlane-xyz/utils';
 
+import { DEFAULT_CONTRACT_READ_CONCURRENCY } from '../../../../consts/concurrency.js';
 import {
   InterchainAccount,
   buildInterchainAccountApp,
@@ -27,6 +33,9 @@ export class EV5InterchainAccountTxTransformer
   constructor(
     public readonly multiProvider: MultiProvider,
     public readonly props: EV5InterchainAccountTxTransformerProps,
+    private readonly concurrency: number = multiProvider.tryGetRpcConcurrency(
+      props.chain,
+    ) ?? DEFAULT_CONTRACT_READ_CONCURRENCY,
   ) {
     assert(
       this.props.config.localRouter,
@@ -56,19 +65,23 @@ export class EV5InterchainAccountTxTransformer
       this.props.config,
     );
 
-    const transformedTxs: ethers.PopulatedTransaction[] = [];
-    for (const txChain of objKeys(txChainsToInnerCalls)) {
+    const transformedTxs: Promise<ethers.PopulatedTransaction>[] = [];
+    objMap(txChainsToInnerCalls, (destination, innerCalls) => {
       transformedTxs.push(
-        await interchainAccountApp.getCallRemote({
+        interchainAccountApp.getCallRemote({
           chain: this.props.chain,
-          destination: txChain,
-          innerCalls: txChainsToInnerCalls[txChain],
+          destination,
+          innerCalls,
           config: this.props.config,
           hookMetadata: this.props.hookMetadata,
         }),
       );
-    }
+    });
 
-    return transformedTxs;
+    return concurrentMap(
+      this.concurrency,
+      transformedTxs,
+      async (transformedTx) => transformedTx,
+    );
   }
 }
