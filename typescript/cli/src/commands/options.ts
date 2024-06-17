@@ -106,11 +106,23 @@ export const agentConfigCommandOption = (
   default: defaultPath,
 });
 
-export const outputFileCommandOption = (defaultPath?: string): Options => ({
+export const chainTargetsCommandOption: Options = {
   type: 'string',
-  description: 'Output file path',
+  description: 'Comma-separated list of chain names',
+  alias: 'c',
+  demandOption: true,
+};
+
+export const outputFileCommandOption = (
+  defaultPath?: string,
+  demandOption = false,
+  description = 'Output file path',
+): Options => ({
+  type: 'string',
+  description,
   default: defaultPath,
   alias: 'o',
+  demandOption,
 });
 
 export const inputFileCommandOption: Options = {

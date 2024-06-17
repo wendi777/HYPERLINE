@@ -1,7 +1,11 @@
 import { confirm, input } from '@inquirer/prompts';
 import { ethers } from 'ethers';
 
-import { ChainMetadata, ChainMetadataSchema } from '@hyperlane-xyz/sdk';
+import {
+  ChainMetadata,
+  ChainMetadataSchema,
+  ZChainName,
+} from '@hyperlane-xyz/sdk';
 import { ProtocolType } from '@hyperlane-xyz/utils';
 
 import { CommandContext } from '../context/types.js';
@@ -48,19 +52,19 @@ export async function createChainConfig({
     },
     'Enter http or https',
     'rpc url',
+    'JSON RPC provider',
   );
   const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
 
-  const name = await detectAndConfirmOrPrompt(
-    async () => {
-      const clientName = await provider.send('web3_clientVersion', []);
-      const port = rpcUrl.split(':').slice(-1);
-      const client = clientName.split('/')[0];
-      return `${client}${port}`;
-    },
-    'Enter (one word, lower case)',
-    'chain name',
-  );
+  const name = await input({
+    message: 'Enter chain name (one word, lower case)',
+    validate: (chainName) => ZChainName.safeParse(chainName).success,
+  });
+
+  const displayName = await input({
+    message: 'Enter chain display name',
+    default: name[0].toUpperCase() + name.slice(1),
+  });
 
   const chainId = parseInt(
     await detectAndConfirmOrPrompt(
@@ -70,12 +74,14 @@ export async function createChainConfig({
       },
       'Enter a (number)',
       'chain id',
+      'JSON RPC provider',
     ),
     10,
   );
 
   const metadata: ChainMetadata = {
     name,
+    displayName,
     chainId,
     domainId: chainId,
     protocol: ProtocolType.Ethereum,

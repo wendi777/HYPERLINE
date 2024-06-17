@@ -12,6 +12,10 @@ import { IsmType } from '../ism/types.js';
 import { RouterConfig } from '../router/types.js';
 import { ChainMap, ChainName } from '../types.js';
 
+export function randomInt(max: number, min = 0): number {
+  return Math.floor(Math.random() * (max - min)) + min;
+}
+
 export function randomAddress(): Address {
   return ethers.utils.hexlify(ethers.utils.randomBytes(20));
 }
@@ -59,8 +63,8 @@ export function testCoreConfig(
 }
 
 const TEST_ORACLE_CONFIG = {
-  gasPrice: ethers.utils.parseUnits('1', 'gwei'),
-  tokenExchangeRate: ethers.utils.parseUnits('1', 10),
+  gasPrice: ethers.utils.parseUnits('1', 'gwei').toString(),
+  tokenExchangeRate: ethers.utils.parseUnits('1', 10).toString(),
 };
 
 export function testIgpConfig(
@@ -71,6 +75,7 @@ export function testIgpConfig(
     chains.map((local) => [
       local,
       {
+        type: HookType.INTERCHAIN_GAS_PAYMASTER,
         owner,
         oracleKey: owner,
         beneficiary: owner,
