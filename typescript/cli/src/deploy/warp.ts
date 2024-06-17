@@ -183,9 +183,12 @@ async function getWarpCoreConfig(
         return wrappedToken;
       }
 
+      // todo: merge this with CollateralExtensions when CLI 2.0 is out
+      // https://github.com/hyperlane-xyz/hyperlane-monorepo/pull/3838/files#diff-a1429ad1c3e9d3fe43d28f08333e95f6c79176b6d36873e42e455e5e806826aaR16
       if (
         config.type === TokenType.collateral ||
-        config.type === TokenType.XERC20
+        config.type === TokenType.XERC20 ||
+        config.type === TokenType.collateralFiat
       ) {
         return config.token;
       }
