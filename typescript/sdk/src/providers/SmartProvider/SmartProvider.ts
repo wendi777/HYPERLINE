@@ -101,7 +101,7 @@ export class HyperlaneSmartProvider
     this.logger.level = level;
   }
 
-  async getPriorityFee() {
+  async getPriorityFee(): Promise<BigNumber> {
     try {
       return BigNumber.from(await this.perform('maxPriorityFeePerGas', {}));
     } catch (error) {
