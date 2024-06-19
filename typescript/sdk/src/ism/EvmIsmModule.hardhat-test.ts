@@ -136,7 +136,7 @@ describe('EvmIsmModule', async () => {
     // example routing config
     exampleRoutingConfig = {
       type: IsmType.ROUTING,
-      owner: await multiProvider.getSignerAddress(chain),
+      owner: (await multiProvider.getSignerAddress(chain)).toLowerCase(),
       domains: Object.fromEntries(
         testChains
           .filter((c) => c !== TestChainName.test4)
@@ -242,15 +242,17 @@ describe('EvmIsmModule', async () => {
         // create a new ISM
         const { ism } = await createIsm(exampleRoutingConfig);
 
-        // add config for a domain the multiprovider doesn't have
-        exampleRoutingConfig.domains['test5'] = {
-          type: IsmType.MESSAGE_ID_MULTISIG,
-          threshold: 1,
-          validators: [randomAddress()],
+        // create an updated config with a domain the multiprovider doesn't have
+        const updatedRoutingConfig: IsmConfig = {
+          ...exampleRoutingConfig,
+          domains: {
+            ...exampleRoutingConfig.domains,
+            test5: randomMultisigIsmConfig(3, 5),
+          },
         };
 
         // expect 0 txs, as adding test5 domain is no-op
-        await expectTxsAndUpdate(ism, exampleRoutingConfig, 0);
+        await expectTxsAndUpdate(ism, updatedRoutingConfig, 0);
       });
 
       it(`update route in an existing ${type}`, async () => {
@@ -312,7 +314,6 @@ describe('EvmIsmModule', async () => {
         const numDomainsAfter = Object.keys(
           ((await ism.read()) as RoutingIsmConfig).domains,
         ).length;
-        console.log(numDomainsBefore, numDomainsAfter);
         expect(numDomainsBefore - 1).to.equal(numDomainsAfter);
       });
 
