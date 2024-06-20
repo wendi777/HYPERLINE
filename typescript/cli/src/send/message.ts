@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 
-import { ChainName, HyperlaneCore } from '@hyperlane-xyz/sdk';
+import { ChainName, HyperlaneCore, HyperlaneRelayer } from '@hyperlane-xyz/sdk';
 import { addressToBytes32, timeout } from '@hyperlane-xyz/utils';
 
 import { MINIMUM_TEST_SEND_GAS } from '../consts.js';
@@ -94,11 +94,13 @@ async function executeDelivery({
   const destinationDomain = multiProvider.getDomainId(destination);
   let txReceipt: ethers.ContractReceipt;
   try {
-    const recipient = chainAddresses[destination].testRecipient;
+    // const recipient = chainAddresses[destination].testRecipient;
+    const recipient = '0x17B49047111c19301FC7503edE306E1739D31bcD';
     if (!recipient) {
       throw new Error(`Unable to find TestRecipient for ${destination}`);
     }
     const formattedRecipient = addressToBytes32(recipient);
+    log('Formatted recipient: ', formattedRecipient);
 
     log('Getting gas quote');
     const value = await mailbox[
@@ -131,9 +133,11 @@ async function executeDelivery({
     logBlue(`Message ID: ${message.id}`);
     log(`Message: ${JSON.stringify(message)}`);
 
-    if (selfRelay) {
+    console.log('Selfrelay option: ', selfRelay);
+    if (selfRelay == selfRelay) {
+      const relayer = new HyperlaneRelayer(core);
       log('Attempting self-relay of message');
-      await core.relayMessage(message);
+      await relayer.relayMessage(txReceipt);
       logGreen('Message was self-relayed!');
       return;
     }

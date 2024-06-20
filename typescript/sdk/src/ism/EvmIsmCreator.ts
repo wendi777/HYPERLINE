@@ -2,6 +2,7 @@ import { ethers } from 'ethers';
 import { Logger } from 'pino';
 
 import {
+  ArbL2ToL1Ism__factory,
   DefaultFallbackRoutingIsm,
   DefaultFallbackRoutingIsm__factory,
   DomainRoutingIsm,
@@ -31,7 +32,6 @@ import {
 import { HyperlaneContracts } from '../contracts/types.js';
 import { HyperlaneDeployer } from '../deploy/HyperlaneDeployer.js';
 import { ProxyFactoryFactories } from '../deploy/contracts.js';
-import { resolveOrDeployAccountOwner } from '../deploy/types.js';
 import { MultiProvider } from '../providers/MultiProvider.js';
 import { ChainMap, ChainName } from '../types.js';
 
@@ -171,17 +171,8 @@ export class EvmIsmCreator {
           destination,
           new PausableIsm__factory(),
           IsmType.PAUSABLE,
-          [
-            await resolveOrDeployAccountOwner(
-              this.multiProvider,
-              destination,
-              config.owner,
-            ),
-          ],
+          [config.owner],
         );
-        await this.deployer.transferOwnershipOfContracts(destination, config, {
-          [IsmType.PAUSABLE]: contract,
-        });
         break;
       case IsmType.TRUSTED_RELAYER:
         assert(
@@ -196,6 +187,19 @@ export class EvmIsmCreator {
           [mailbox, config.relayer],
         );
         break;
+      case IsmType.ARB_L2_TO_L1:
+        assert(
+          this.deployer,
+          `HyperlaneDeployer must be set to deploy ${ismType}`,
+        );
+        contract = await this.deployer.deployContractFromFactory(
+          destination,
+          new ArbL2ToL1Ism__factory(),
+          IsmType.ARB_L2_TO_L1,
+          [config.bridge, config.outbox],
+        );
+        break;
+
       case IsmType.TEST_ISM:
         if (!this.deployer) {
           throw new Error(`HyperlaneDeployer must be set to deploy ${ismType}`);
@@ -331,11 +335,7 @@ export class EvmIsmCreator {
       }
     } else {
       const isms: ChainMap<Address> = {};
-      const owner = await resolveOrDeployAccountOwner(
-        this.multiProvider,
-        destination,
-        config.owner,
-      );
+      const owner = config.owner;
 
       for (const origin of Object.keys(config.domains)) {
         const ism = await this.deploy({
@@ -416,11 +416,7 @@ export class EvmIsmCreator {
     );
 
     const isms: ChainMap<Address> = {};
-    const owner = await resolveOrDeployAccountOwner(
-      this.multiProvider,
-      destination,
-      config.owner,
-    );
+    const owner = config.owner;
 
     for (const origin of Object.keys(config.domains)) {
       const ism = await this.deploy({

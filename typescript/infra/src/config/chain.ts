@@ -1,3 +1,4 @@
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import { providers } from 'ethers';
 
 import { IRegistry } from '@hyperlane-xyz/registry';
